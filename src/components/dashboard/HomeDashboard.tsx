@@ -5,22 +5,26 @@ import {
   Sparkles, 
   Clock, 
   CheckCircle2, 
+  Circle,
   AlertCircle, 
   Brain, 
   Zap, 
   Factory, 
-  Cpu, 
-  ChevronRight, 
-  ArrowUpRight,
-  Flame,
-  Shield,
-  Send,
-  Mic,
-  RotateCcw,
-  Plus
+  Flame, 
+  Send, 
+  Mic, 
+  Plus, 
+  BookOpen,
+  Calendar,
+  ChevronRight,
+  HelpCircle,
+  Volume2
 } from 'lucide-react';
 import { Task, Reminder, Memory } from '@/lib/types';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { AddTaskModal } from '@/components/tasks/AddTaskModal';
+import { AddReminderModal } from '@/components/reminders/AddReminderModal';
+import { AppTourModal } from '@/components/tour/AppTourModal';
 
 interface HomeDashboardProps {
   onNavigateTab: (tab: 'assistant' | 'tasks' | 'memory' | 'profile') => void;
@@ -30,7 +34,6 @@ interface HomeDashboardProps {
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   onNavigateTab,
-  onOpenQuickCapture,
   onOpenBrainDump
 }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -39,6 +42,13 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const [factoryCount, setFactoryCount] = useState(0);
   const [lowEnergyMode, setLowEnergyMode] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
+  
+  // Modals state
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [isAddReminderOpen, setIsAddReminderOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // Quick Command state
   const [quickInput, setQuickInput] = useState('');
   const [isProcessingQuick, setIsProcessingQuick] = useState(false);
   const [quickReply, setQuickReply] = useState<string | null>(null);
@@ -77,7 +87,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   useEffect(() => {
     loadDashboardData();
 
-    // Update real-time clock (Asia/Kolkata)
+    // Real-time clock (Asia/Kolkata)
     const updateClock = () => {
       const now = new Date();
       setCurrentTime(
@@ -93,6 +103,24 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     const timer = setInterval(updateClock, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const toggleTaskStatus = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    // Optimistic UI update
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, status: nextStatus as any } : t)));
+
+    try {
+      await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: nextStatus })
+      });
+      loadDashboardData();
+    } catch (err) {
+      console.error(err);
+      loadDashboardData();
+    }
+  };
 
   const handleQuickCommand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +141,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         setQuickReply(d.reply || 'Command processed.');
         setQuickInput('');
         loadDashboardData();
-        setTimeout(() => setQuickReply(null), 5000);
+        setTimeout(() => setQuickReply(null), 6000);
       }
     } catch (err) {
       console.error(err);
@@ -129,265 +157,430 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     timeZone: 'Asia/Kolkata',
     weekday: 'long',
     day: 'numeric',
-    month: 'short',
-    year: 'numeric'
+    month: 'short'
   }).format(new Date());
 
   return (
-    <div className="pb-24 pt-3 px-3 sm:px-6 max-w-4xl mx-auto text-slate-100 font-sans">
+    <div className="pb-28 pt-4 px-3 sm:px-6 max-w-4xl mx-auto text-slate-100 font-sans">
       
       {/* TOP COMMAND HUD HEADER */}
-      <div className="flex items-center justify-between py-2 border-b border-slate-800/80 mb-4">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-slate-950 font-black text-sm shadow-[0_0_15px_rgba(6,182,212,0.3)] border border-cyan-400/40">
+      <div className="flex items-center justify-between py-3 border-b border-slate-800/80 mb-5">
+        <div className="flex items-center space-x-3">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-black text-base shadow-[0_0_20px_rgba(6,182,212,0.4)] border border-cyan-300/40">
             NJ
           </div>
           <div>
-            <div className="flex items-center space-x-1.5">
-              <span className="text-xs font-bold tracking-widest text-cyan-400 font-mono">NICK&apos;S JARVIS</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-bold tracking-wider text-white font-mono">NICK&apos;S JARVIS</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             </div>
-            <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+            <p className="text-xs text-slate-400 font-mono">
               {todayDateStr} • {currentTime} IST
             </p>
           </div>
         </div>
 
-        {/* Right side controls: Notification Bell & Low-Energy Toggle */}
+        {/* Right side controls: App Tour, Low-Energy & Notifications */}
         <div className="flex items-center space-x-2">
+          {/* App Tour Pill */}
+          <button
+            onClick={() => setIsTourOpen(true)}
+            className="px-3 py-2 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900/40 text-xs font-bold flex items-center space-x-1.5 transition-all shadow-sm"
+            title="Open App Tour"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Tour</span>
+          </button>
+
+          {/* Low-Energy Mode Toggle */}
           <button
             onClick={() => setLowEnergyMode(!lowEnergyMode)}
-            className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold flex items-center space-x-1 transition-all ${
+            className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center space-x-1.5 transition-all ${
               lowEnergyMode
-                ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
                 : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
             title="Toggle Low-Energy Mode"
           >
             <Flame className="w-3.5 h-3.5" />
-            <span>{lowEnergyMode ? 'Low-Energy ON' : 'Normal'}</span>
+            <span>{lowEnergyMode ? 'Low-Energy' : 'Normal'}</span>
           </button>
 
           <NotificationCenter onReminderAction={loadDashboardData} />
         </div>
       </div>
 
-      {/* QUICK COMMAND TERMINAL BAR */}
-      <form onSubmit={handleQuickCommand} className="mb-5 relative">
-        <div className="flex items-center bg-slate-900/90 border border-cyan-500/30 rounded-2xl p-1.5 shadow-[0_0_25px_rgba(6,182,212,0.1)] focus-within:border-cyan-400 transition-colors">
-          <span className="pl-3 pr-2 text-cyan-400 font-mono text-xs font-bold">JARVIS &gt;</span>
+      {/* 3 CLEAR GRAPHICAL ACTION CARDS (No Duplicate confusion) */}
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-6">
+        
+        {/* 1. Add Task Card */}
+        <button
+          onClick={() => setIsAddTaskOpen(true)}
+          className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/40 hover:border-emerald-400 text-left transition-all shadow-[0_0_20px_rgba(16,185,129,0.1)] group flex flex-col justify-between"
+        >
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+            <Plus className="w-5 h-5 stroke-[3]" />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-white leading-tight">+ New Task</h3>
+            <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">No-Brainer step</p>
+          </div>
+        </button>
+
+        {/* 2. Set Reminder Card */}
+        <button
+          onClick={() => setIsAddReminderOpen(true)}
+          className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-900 border border-cyan-500/40 hover:border-cyan-400 text-left transition-all shadow-[0_0_20px_rgba(6,182,212,0.1)] group flex flex-col justify-between"
+        >
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-white leading-tight">+ Reminder</h3>
+            <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">Audio alarm & due time</p>
+          </div>
+        </button>
+
+        {/* 3. Brain Dump Card */}
+        <button
+          onClick={onOpenBrainDump}
+          className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-violet-950/40 via-slate-900 to-slate-900 border border-violet-500/40 hover:border-violet-400 text-left transition-all shadow-[0_0_20px_rgba(139,92,246,0.1)] group flex flex-col justify-between"
+        >
+          <div className="w-9 h-9 rounded-xl bg-violet-500/20 text-violet-400 border border-violet-500/40 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+            <Mic className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-white leading-tight">Brain Dump</h3>
+            <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">Voice stream unload</p>
+          </div>
+        </button>
+
+      </div>
+
+      {/* QUICK COMMAND BAR (Ask Jarvis natural language) */}
+      <form onSubmit={handleQuickCommand} className="mb-6 relative">
+        <div className="flex items-center bg-slate-900 border border-slate-700/80 rounded-2xl p-2 shadow-lg focus-within:border-cyan-400 transition-colors">
+          <span className="pl-3 pr-2 text-cyan-400 font-mono text-sm font-bold">JARVIS &gt;</span>
           <input
             type="text"
             value={quickInput}
             onChange={(e) => setQuickInput(e.target.value)}
-            placeholder="Talk or command (English, Hindi, Hinglish)..."
-            className="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none py-1.5"
+            placeholder="Type or speak in Hindi/English (e.g.: 'Kal 11 baje Ramesh ko phone karna hai')..."
+            className="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none py-1"
           />
           <button
             type="submit"
             disabled={!quickInput.trim() || isProcessingQuick}
-            className="px-3.5 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 rounded-xl text-xs font-bold flex items-center space-x-1 transition-all"
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 rounded-xl text-xs font-bold flex items-center space-x-1 transition-all"
           >
-            <span>Run</span>
-            <Send className="w-3 h-3" />
+            <span>Ask</span>
+            <Send className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {quickReply && (
-          <div className="mt-2 p-3 bg-cyan-950/40 border border-cyan-500/40 rounded-xl text-xs text-cyan-200 leading-relaxed animate-in fade-in">
-            <strong className="text-cyan-400 font-mono mr-1">JARVIS:</strong>
+          <div className="mt-2.5 p-3.5 bg-cyan-950/60 border border-cyan-500/50 rounded-xl text-sm text-cyan-200 leading-relaxed shadow-lg animate-in fade-in">
+            <strong className="text-cyan-400 font-mono mr-1.5 font-bold">JARVIS:</strong>
             {quickReply}
           </div>
         )}
       </form>
 
-      {/* BRAIN DUMP & QUICK ACTION LAUNCHERS */}
-      <div className="grid grid-cols-2 gap-2.5 mb-5">
-        <button
-          onClick={onOpenBrainDump}
-          className="p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/40 to-slate-900 border border-cyan-500/40 text-left hover:border-cyan-400 transition-all shadow-[0_0_20px_rgba(6,182,212,0.1)] group"
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold">
-              STREAM OF CONSCIOUSNESS
-            </span>
-            <Sparkles className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform" />
-          </div>
-          <h3 className="text-sm font-bold text-white">Brain Dump</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">Unload everything; Jarvis classifies with preview.</p>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('tasks')}
-          className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-left hover:border-slate-700 transition-colors"
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold">
-              EXECUTION READY
-            </span>
-            <Zap className="w-4 h-4 text-emerald-400" />
-          </div>
-          <h3 className="text-sm font-bold text-white">No-Brainer Tasks</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">5-min, low-energy & phone-call actions.</p>
-        </button>
-      </div>
-
-      {/* LOW-ENERGY MODE VIEW (CALM & FOCUSED) */}
+      {/* LOW-ENERGY MODE VIEW */}
       {lowEnergyMode ? (
-        <div className="p-5 rounded-2xl bg-amber-950/20 border border-amber-500/40 mb-6">
-          <div className="flex items-center space-x-2 text-amber-400 mb-2">
-            <Flame className="w-5 h-5" />
-            <h3 className="text-sm font-bold tracking-wide">Low-Energy Mode Active</h3>
+        <div className="p-6 rounded-3xl bg-amber-950/30 border-2 border-amber-500/50 mb-6 shadow-xl">
+          <div className="flex items-center space-x-2.5 text-amber-400 mb-2">
+            <Flame className="w-6 h-6" />
+            <h3 className="text-base font-bold tracking-wide">Low-Energy Mode Active</h3>
           </div>
-          <p className="text-xs text-slate-300 leading-relaxed mb-4">
-            Zero pressure today. Let&apos;s not overwhelm yourself. We only focus on **one small action** to keep momentum going.
+          <p className="text-sm text-slate-300 leading-relaxed mb-4">
+            Zero pressure today. Let&apos;s not overwhelm yourself. We only focus on **one small 5-minute action** to keep momentum going.
           </p>
 
           {pendingTasks.length > 0 ? (
-            <div className="p-3.5 rounded-xl bg-slate-900 border border-amber-500/30">
-              <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider block mb-1">
+            <div className="p-4 rounded-2xl bg-slate-900 border border-amber-500/40">
+              <span className="text-xs font-mono text-amber-400 font-bold uppercase tracking-wider block mb-1">
                 YOUR SINGLE NEXT ACTION
               </span>
-              <h4 className="text-sm font-bold text-white">{pendingTasks[0].title}</h4>
-              <p className="text-xs text-slate-400 mt-1">{pendingTasks[0].description || 'Just start for 5 minutes.'}</p>
+              <h4 className="text-base font-bold text-white">{pendingTasks[0].title}</h4>
+              <p className="text-sm text-slate-300 mt-1">{pendingTasks[0].description || 'Just start for 5 minutes.'}</p>
+              <button
+                onClick={() => toggleTaskStatus(pendingTasks[0].id, pendingTasks[0].status)}
+                className="mt-3 px-4 py-2 bg-emerald-500 text-slate-950 text-xs font-bold rounded-xl flex items-center space-x-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Mark This 5-Min Task Done</span>
+              </button>
             </div>
           ) : (
-            <p className="text-xs text-slate-400">All caught up! Take some rest.</p>
+            <p className="text-sm text-slate-400">All caught up! Take some rest.</p>
           )}
         </div>
       ) : (
-        /* NORMAL FULL DASHBOARD */
+        /* NORMAL DASHBOARD */
         <>
-          {/* AI MORNING BRIEFING BANNER */}
-          <div className="mb-5 p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-cyan-950/30 to-slate-900 border border-cyan-500/30 relative overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2 text-cyan-400">
-                <Sparkles className="w-4 h-4" />
-                <h2 className="text-xs font-bold uppercase tracking-wider font-mono">Today&apos;s OS Briefing</h2>
-              </div>
-              <span className="text-[10px] text-slate-400 font-mono">Asia/Kolkata</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              You have <strong className="text-cyan-300 font-bold">{pendingTasks.length} pending tasks</strong> and{' '}
-              <strong className="text-cyan-300 font-bold">{activeReminders.length} scheduled reminders</strong>. 
-              {activeReminders.length > 0 && (
-                <span> Next up: <strong className="text-white">{activeReminders[0].title}</strong>.</span>
-              )}
-            </p>
-          </div>
-
-          {/* METRIC CHIPS HUD */}
-          <div className="grid grid-cols-4 gap-2 mb-5">
+          {/* STATS TILES (Visual & High Contrast) */}
+          <div className="grid grid-cols-4 gap-2.5 mb-6">
             <div 
               onClick={() => onNavigateTab('tasks')}
-              className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl cursor-pointer hover:border-cyan-500/40 transition-colors"
+              className="bg-slate-900 border border-slate-800 p-3 rounded-2xl cursor-pointer hover:border-emerald-500/50 transition-colors"
             >
-              <span className="text-[10px] font-mono text-slate-400 uppercase block">Tasks</span>
-              <p className="text-lg font-black text-white mt-0.5">{pendingTasks.length}</p>
+              <span className="text-xs font-mono text-slate-400 uppercase font-semibold block">Tasks</span>
+              <p className="text-2xl font-black text-emerald-400 mt-1">{pendingTasks.length}</p>
             </div>
 
             <div 
               onClick={() => onNavigateTab('tasks')}
-              className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl cursor-pointer hover:border-cyan-500/40 transition-colors"
+              className="bg-slate-900 border border-slate-800 p-3 rounded-2xl cursor-pointer hover:border-cyan-500/50 transition-colors"
             >
-              <span className="text-[10px] font-mono text-slate-400 uppercase block">Reminders</span>
-              <p className="text-lg font-black text-cyan-400 mt-0.5">{activeReminders.length}</p>
+              <span className="text-xs font-mono text-slate-400 uppercase font-semibold block">Reminders</span>
+              <p className="text-2xl font-black text-cyan-400 mt-1">{activeReminders.length}</p>
             </div>
 
             <div 
               onClick={() => onNavigateTab('memory')}
-              className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl cursor-pointer hover:border-cyan-500/40 transition-colors"
+              className="bg-slate-900 border border-slate-800 p-3 rounded-2xl cursor-pointer hover:border-violet-500/50 transition-colors"
             >
-              <span className="text-[10px] font-mono text-slate-400 uppercase block">Memory</span>
-              <p className="text-lg font-black text-violet-400 mt-0.5">{memories.length}</p>
+              <span className="text-xs font-mono text-slate-400 uppercase font-semibold block">Brain CRM</span>
+              <p className="text-2xl font-black text-violet-400 mt-1">{memories.length}</p>
             </div>
 
             <div 
               onClick={() => onNavigateTab('tasks')}
-              className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl cursor-pointer hover:border-cyan-500/40 transition-colors"
+              className="bg-slate-900 border border-slate-800 p-3 rounded-2xl cursor-pointer hover:border-amber-500/50 transition-colors"
             >
-              <span className="text-[10px] font-mono text-slate-400 uppercase block">Factory</span>
-              <p className="text-lg font-black text-emerald-400 mt-0.5">{factoryCount}</p>
+              <span className="text-xs font-mono text-slate-400 uppercase font-semibold block">Factory</span>
+              <p className="text-2xl font-black text-amber-400 mt-1">{factoryCount}</p>
             </div>
           </div>
 
-          {/* UPCOMING REMINDERS HUD */}
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono flex items-center space-x-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Active Cloud Reminders</span>
-              </h3>
-              <span className="text-[10px] text-slate-400 font-mono">Server-Restart Protected</span>
+          {/* ⚡ TODAY'S ACTION TASKS (SHOW DIRECTLY ON DASHBOARD!) */}
+          <div className="mb-7">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <h2 className="text-base font-bold text-white tracking-wide">
+                  Today&apos;s Action Tasks
+                </h2>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsAddTaskOpen(true)}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center space-x-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Task</span>
+                </button>
+                <button
+                  onClick={() => onNavigateTab('tasks')}
+                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center space-x-0.5 ml-2 font-mono"
+                >
+                  <span>View All ({tasks.length})</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              {activeReminders.length === 0 ? (
-                <div className="p-3.5 rounded-xl bg-slate-900/50 border border-slate-900 text-center text-xs text-slate-500">
-                  No pending reminders scheduled. Tell Jarvis e.g.: &quot;Remind me at 5:30 PM to call supplier.&quot;
+            <div className="space-y-2.5">
+              {tasks.length === 0 ? (
+                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-sm text-slate-400">
+                  No tasks saved yet. Tap <strong className="text-emerald-400">+ New Task</strong> above to add your first task!
                 </div>
               ) : (
-                activeReminders.slice(0, 3).map((r) => (
-                  <div 
-                    key={r.id}
-                    className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between hover:border-slate-700 transition-colors"
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 mt-0.5">
-                        <Clock className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-semibold text-white">{r.title}</h4>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {new Date(r.remind_at).toLocaleDateString([], { month: 'short', day: 'numeric' })} at{' '}
-                          {new Date(r.remind_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                tasks.slice(0, 5).map((t) => {
+                  const isDone = t.status === 'completed';
+                  return (
+                    <div
+                      key={t.id}
+                      className={`p-4 rounded-2xl border transition-all flex items-start space-x-3.5 ${
+                        isDone
+                          ? 'bg-slate-950/50 border-slate-900 opacity-60'
+                          : 'bg-slate-900/90 border-slate-800 hover:border-emerald-500/40 shadow-sm'
+                      }`}
+                    >
+                      <button
+                        onClick={() => toggleTaskStatus(t.id, t.status)}
+                        className="mt-0.5 text-slate-400 hover:text-emerald-400 transition-colors"
+                        title={isDone ? 'Mark Pending' : 'Mark Completed'}
+                      >
+                        {isDone ? (
+                          <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                        ) : (
+                          <Circle className="w-6 h-6 text-slate-500 hover:text-emerald-400" />
+                        )}
+                      </button>
+
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <h4
+                            className={`text-sm font-semibold ${
+                              isDone ? 'line-through text-slate-500' : 'text-white'
+                            }`}
+                          >
+                            {t.title}
+                          </h4>
+
+                          <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded font-mono ${
+                            t.priority === 'urgent'
+                              ? 'bg-rose-950 text-rose-400 border border-rose-800'
+                              : t.priority === 'high'
+                              ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                              : 'bg-slate-800 text-slate-300'
+                          }`}>
+                            {t.priority}
+                          </span>
+                        </div>
+
+                        {t.description && (
+                          <p className="text-xs text-slate-300 mt-1 whitespace-pre-line leading-relaxed">
+                            {t.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center space-x-2 mt-2">
+                          <span className="text-[11px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/60">
+                            {t.category}
+                          </span>
+                          {t.due_date && (
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              Due: {t.due_date}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800/60 font-mono">
-                      {r.priority}
-                    </span>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
 
-          {/* RECENT FACTORY OPERATIONS & MEMORY */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono flex items-center space-x-1.5">
-                <Brain className="w-3.5 h-3.5 text-violet-400" />
-                <span>Second Brain Records</span>
-              </h3>
+          {/* ACTIVE CLOUD REMINDERS */}
+          <div className="mb-7">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <h2 className="text-base font-bold text-white tracking-wide">
+                  Active Reminders
+                </h2>
+              </div>
+
               <button
-                onClick={() => onNavigateTab('memory')}
-                className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center space-x-0.5 font-mono"
+                onClick={() => setIsAddReminderOpen(true)}
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-bold flex items-center space-x-1"
               >
-                <span>View All</span>
-                <ChevronRight className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
+                <span>Set Reminder</span>
               </button>
             </div>
 
-            {memories.slice(0, 2).map((m) => (
-              <div
-                key={m.id}
-                onClick={() => onNavigateTab('memory')}
-                className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 cursor-pointer hover:border-slate-700 transition-colors mb-2"
-              >
-                <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono text-[10px]">
-                    {m.category}
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-slate-500" />
+            <div className="space-y-2.5">
+              {activeReminders.length === 0 ? (
+                <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-sm text-slate-400">
+                  No upcoming reminders. Tap <strong className="text-cyan-400">+ Reminder</strong> above to set one with audio alarms!
                 </div>
-                <h4 className="text-xs font-semibold text-slate-100">{m.title}</h4>
-                <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{m.content}</p>
+              ) : (
+                activeReminders.slice(0, 4).map((r) => {
+                  const isPast = new Date(r.remind_at) <= new Date();
+                  return (
+                    <div 
+                      key={r.id}
+                      className={`p-4 rounded-2xl border flex items-center justify-between transition-colors ${
+                        isPast
+                          ? 'bg-rose-950/30 border-rose-500/50 text-rose-200'
+                          : 'bg-slate-900 border-slate-800 hover:border-cyan-500/40'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-3.5">
+                        <div className={`p-2 rounded-xl mt-0.5 ${
+                          isPast ? 'bg-rose-500/20 text-rose-400' : 'bg-cyan-500/10 text-cyan-400'
+                        }`}>
+                          <Clock className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-white">{r.title}</h4>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {new Date(r.remind_at).toLocaleDateString([], { month: 'short', day: 'numeric' })} at{' '}
+                            {new Date(r.remind_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800/60 font-mono">
+                        {isPast ? 'OVERDUE' : r.priority}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* SECOND BRAIN & PEOPLE CRM HIGHLIGHTS */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-1.5 rounded-lg bg-violet-500/20 text-violet-400 border border-violet-500/40">
+                  <Brain className="w-4 h-4" />
+                </div>
+                <h2 className="text-base font-bold text-white tracking-wide">
+                  Second Brain Knowledge & CRM
+                </h2>
               </div>
-            ))}
+
+              <button
+                onClick={() => onNavigateTab('memory')}
+                className="text-xs text-violet-400 hover:text-violet-300 flex items-center space-x-0.5 font-mono"
+              >
+                <span>View All ({memories.length})</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {memories.slice(0, 2).map((m) => (
+                <div
+                  key={m.id}
+                  onClick={() => onNavigateTab('memory')}
+                  className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-violet-500/40 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-violet-950 text-violet-300 border border-violet-800/60 font-bold uppercase">
+                      {m.category}
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono">Cloud Synced</span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white line-clamp-1">{m.title}</h4>
+                  <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">{m.content}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
+
+      {/* MODALS */}
+      <AddTaskModal
+        isOpen={isAddTaskOpen}
+        onClose={() => setIsAddTaskOpen(false)}
+        onTaskCreated={loadDashboardData}
+      />
+
+      <AddReminderModal
+        isOpen={isAddReminderOpen}
+        onClose={() => setIsAddReminderOpen(false)}
+        onReminderCreated={loadDashboardData}
+      />
+
+      <AppTourModal
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+      />
 
     </div>
   );

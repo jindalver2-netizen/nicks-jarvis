@@ -103,7 +103,13 @@ export const TaskManager: React.FC = () => {
       return t.status !== 'completed' && (
         t.priority === 'low' || 
         t.category.toLowerCase().includes('phone') ||
-        (t.description && t.description.includes('HOW:'))
+        (t.description && (
+          t.description.includes('HOW:') || 
+          t.description.includes('HOW TO DO IT:') || 
+          t.description.includes('NO-BRAINER') ||
+          t.description.includes('5-min') ||
+          t.description.includes('10-min')
+        ))
       );
     }
     const today = new Date().toISOString().split('T')[0];

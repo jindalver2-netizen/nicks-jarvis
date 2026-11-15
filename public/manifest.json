@@ -1,12 +1,12 @@
 {
-  "name": "Memorae AI Second Brain",
-  "short_name": "Memorae",
-  "description": "Your Personal AI Second Brain for Tasks, Reminders, and Knowledge",
+  "name": "Nick's Jarvis — Personal AI Life OS",
+  "short_name": "Nick's Jarvis",
+  "description": "Your Personal AI Operating System for Life, Business, Factory Operations, and External Brain",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",
-  "theme_color": "#4f46e5",
-  "orientation": "portrait-primary",
+  "theme_color": "#06b6d4",
+  "orientation": "any",
   "icons": [
     {
       "src": "/favicon.ico",

@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Memorae AI Second Brain',
-  description: 'Personal AI Second Brain - Persistent Reminders, Tasks & Memory',
+  title: "Nick's Jarvis — Personal AI Life OS",
+  description: "Personal AI Life OS & Factory System - Persistent Reminders, No-Brainer Tasks & External Brain",
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Memorae'
+    title: "Nick's Jarvis"
   }
 };
 

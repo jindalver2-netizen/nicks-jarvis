@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getServiceSupabase();
-    const effectiveUserId = userId || '00000000-0000-0000-0000-000000000000';
+    const effectiveUserId = userId || process.env.DEFAULT_USER_ID || '15aa37f0-28fb-42bc-bbc1-956e3bb6a84d';
 
     // 1. Fetch relevant memories for conversational context
     const { data: recentMemories } = await supabase

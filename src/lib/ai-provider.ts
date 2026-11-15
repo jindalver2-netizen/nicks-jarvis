@@ -24,11 +24,11 @@ export class UniversalAIProvider {
   private baseUrl: string;
 
   constructor() {
-    this.provider = process.env.AI_PROVIDER || 'openai';
+    this.provider = process.env.AI_PROVIDER || 'nvidia';
     
     if (this.provider === 'nvidia') {
       this.apiKey = process.env.NVIDIA_API_KEY || '';
-      this.model = process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct';
+      this.model = process.env.NVIDIA_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b';
       this.baseUrl = process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1';
     } else {
       // Default to OpenAI or OpenAI-compatible (Gemini endpoint)
@@ -81,7 +81,8 @@ Action Param Schemas:
 - search_memory: { "query": string, "category"?: string }
 - manage_list: { "list_name": string, "action": "add"|"remove"|"complete", "item_text": string }
 
-Never invent missing critical dates. If ambiguous, ask politely in your reply and do not execute an incomplete action.`;
+Never invent missing critical dates. If ambiguous, ask politely in your reply and do not execute an incomplete action.
+Return only valid JSON.`;
 
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -97,26 +98,32 @@ Never invent missing critical dates. If ambiguous, ask politely in your reply an
             ...conversationHistory.slice(-6),
             { role: 'user', content: userMessage }
           ],
-          response_format: { type: 'json_object' },
-          temperature: 0.2
+          temperature: 0.2,
+          max_tokens: 2048
         })
       });
 
       if (!response.ok) {
-        console.error(`AI API Error (${this.provider}): ${response.statusText}`);
+        console.error(`AI API Error (${this.provider}): ${response.statusText} (${response.status})`);
         return this.fallbackDeterministicParser(userMessage);
       }
 
       const data = await response.json();
-      const content = data.choices[0]?.message?.content;
-      const parsed = JSON.parse(content);
+      const content = data.choices[0]?.message?.content || '';
 
-      return {
-        reply: parsed.reply || 'Understood and processed.',
-        actions: parsed.actions || [],
-        detected_language: parsed.detected_language || 'en',
-        model_used: this.model
-      };
+      // Robust JSON extraction (handles raw JSON or markdown-fenced ```json ... ```)
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          reply: parsed.reply || 'Understood and processed.',
+          actions: parsed.actions || [],
+          detected_language: parsed.detected_language || 'en',
+          model_used: this.model
+        };
+      }
+
+      return this.fallbackDeterministicParser(userMessage);
     } catch (err) {
       console.error('Error invoking AI Provider:', err);
       return this.fallbackDeterministicParser(userMessage);

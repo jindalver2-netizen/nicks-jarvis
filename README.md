@@ -94,3 +94,5 @@ memorae-second-brain/
 └── supabase/
     └── migrations/            # SQL migration scripts
 ```
+
+<!-- Deployment trigger: 2026-11-15 19:06:45 -->

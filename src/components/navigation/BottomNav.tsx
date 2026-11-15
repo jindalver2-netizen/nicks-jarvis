@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { 
-  Home, 
-  MessageSquare, 
+  Terminal, 
   CheckSquare, 
   Brain, 
-  User, 
-  Plus 
+  Sliders, 
+  Plus, 
+  Home
 } from 'lucide-react';
 
 export type NavTab = 'home' | 'assistant' | 'tasks' | 'memory' | 'profile';
@@ -26,39 +26,39 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   unreadCount = 0
 }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-md border-t border-slate-800/80 px-2 pb-safe max-w-lg mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 px-2 pb-safe max-w-lg mx-auto">
       <div className="flex items-center justify-around h-16 relative">
         
-        {/* 1. HOME */}
+        {/* 1. HUD / HOME */}
         <button
           onClick={() => onSelectTab('home')}
           className={`flex flex-col items-center justify-center flex-1 transition-colors ${
-            currentTab === 'home' ? 'text-indigo-400 font-medium' : 'text-slate-400 hover:text-slate-200'
+            currentTab === 'home' ? 'text-cyan-400 font-semibold' : 'text-slate-500 hover:text-slate-300'
           }`}
         >
           <Home className="w-5 h-5 mb-1" />
-          <span className="text-[11px]">Home</span>
+          <span className="text-[10px] uppercase font-mono tracking-wider">HUD</span>
         </button>
 
-        {/* 2. AI ASSISTANT */}
+        {/* 2. JARVIS AI */}
         <button
           onClick={() => onSelectTab('assistant')}
           className={`flex flex-col items-center justify-center flex-1 transition-colors relative ${
-            currentTab === 'assistant' ? 'text-indigo-400 font-medium' : 'text-slate-400 hover:text-slate-200'
+            currentTab === 'assistant' ? 'text-cyan-400 font-semibold' : 'text-slate-500 hover:text-slate-300'
           }`}
         >
-          <MessageSquare className="w-5 h-5 mb-1" />
-          <span className="text-[11px]">Assistant</span>
+          <Terminal className="w-5 h-5 mb-1" />
+          <span className="text-[10px] uppercase font-mono tracking-wider">Jarvis</span>
         </button>
 
         {/* CENTER FLOATING QUICK CAPTURE BUTTON */}
         <div className="flex items-center justify-center px-1">
           <button
             onClick={onOpenQuickCapture}
-            aria-label="Quick Capture"
-            className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-lg shadow-indigo-500/30 flex items-center justify-center transform active:scale-95 transition-transform -translate-y-2 hover:brightness-110"
+            aria-label="Quick Action"
+            className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center justify-center transform active:scale-95 transition-transform -translate-y-2 border border-cyan-300/40 hover:brightness-110"
           >
-            <Plus className="w-6 h-6 stroke-[2.5]" />
+            <Plus className="w-6 h-6 stroke-[3]" />
           </button>
         </div>
 
@@ -66,13 +66,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <button
           onClick={() => onSelectTab('tasks')}
           className={`flex flex-col items-center justify-center flex-1 transition-colors relative ${
-            currentTab === 'tasks' ? 'text-indigo-400 font-medium' : 'text-slate-400 hover:text-slate-200'
+            currentTab === 'tasks' ? 'text-cyan-400 font-semibold' : 'text-slate-500 hover:text-slate-300'
           }`}
         >
           <CheckSquare className="w-5 h-5 mb-1" />
-          <span className="text-[11px]">Tasks</span>
+          <span className="text-[10px] uppercase font-mono tracking-wider">Tasks</span>
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500" />
+            <span className="absolute top-1 right-3 w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
           )}
         </button>
 
@@ -80,22 +80,22 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <button
           onClick={() => onSelectTab('memory')}
           className={`flex flex-col items-center justify-center flex-1 transition-colors ${
-            currentTab === 'memory' ? 'text-indigo-400 font-medium' : 'text-slate-400 hover:text-slate-200'
+            currentTab === 'memory' ? 'text-cyan-400 font-semibold' : 'text-slate-500 hover:text-slate-300'
           }`}
         >
           <Brain className="w-5 h-5 mb-1" />
-          <span className="text-[11px]">Memory</span>
+          <span className="text-[10px] uppercase font-mono tracking-wider">Brain</span>
         </button>
 
-        {/* 5. PROFILE */}
+        {/* 5. CONFIG */}
         <button
           onClick={() => onSelectTab('profile')}
           className={`flex flex-col items-center justify-center flex-1 transition-colors ${
-            currentTab === 'profile' ? 'text-indigo-400 font-medium' : 'text-slate-400 hover:text-slate-200'
+            currentTab === 'profile' ? 'text-cyan-400 font-semibold' : 'text-slate-500 hover:text-slate-300'
           }`}
         >
-          <User className="w-5 h-5 mb-1" />
-          <span className="text-[11px]">Profile</span>
+          <Sliders className="w-5 h-5 mb-1" />
+          <span className="text-[10px] uppercase font-mono tracking-wider">Config</span>
         </button>
 
       </div>

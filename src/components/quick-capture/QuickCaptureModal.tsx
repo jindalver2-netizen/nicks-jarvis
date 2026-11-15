@@ -62,7 +62,7 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    recognition.lang = 'hi-IN'; // Hindi + English / Hinglish auto
+    recognition.lang = 'hi-IN';
     recognition.interimResults = false;
 
     if (!isRecording) {
@@ -75,13 +75,8 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
         setIsRecording(false);
       };
 
-      recognition.onerror = () => {
-        setIsRecording(false);
-      };
-
-      recognition.onend = () => {
-        setIsRecording(false);
-      };
+      recognition.onerror = () => setIsRecording(false);
+      recognition.onend = () => setIsRecording(false);
     } else {
       recognition.stop();
       setIsRecording(false);
@@ -89,18 +84,25 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-t-2xl sm:rounded-2xl p-5 shadow-2xl relative text-slate-100 mb-0 sm:mb-10">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="w-full max-w-lg bg-slate-950 border border-cyan-500/30 rounded-t-3xl sm:rounded-3xl p-5 shadow-[0_0_50px_rgba(6,182,212,0.2)] relative text-slate-100 mb-0 sm:mb-10">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
-            <h3 className="font-semibold text-sm tracking-wide">Quick Capture (Voice / Text)</h3>
+            <div className="p-1 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs uppercase tracking-wider text-cyan-400 font-mono">
+                JARVIS QUICK CAPTURE
+              </h3>
+              <p className="text-[10px] text-slate-400">Speak or write in English or Hinglish</p>
+            </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-1 rounded-full text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -111,16 +113,16 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="E.g. 'Kal 11 baje Rajesh ko payment call karna hai' or 'Remember that my supplier is in Delhi'..."
+            placeholder="E.g.: 'Remind me today at 5:30 PM to call the supplier' or 'Factory stock review complete'..."
             rows={3}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+            className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 resize-none font-sans"
             autoFocus
           />
         </div>
 
         {/* Success message banner */}
         {successMsg && (
-          <div className="mt-2 flex items-center space-x-2 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 p-2.5 rounded-lg">
+          <div className="mt-2 flex items-center space-x-2 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 p-2.5 rounded-xl">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -135,37 +137,37 @@ export const QuickCaptureModal: React.FC<QuickCaptureModalProps> = ({
               className={`p-2.5 rounded-xl border transition-colors flex items-center justify-center ${
                 isRecording 
                   ? 'bg-rose-500/20 border-rose-500 text-rose-400 animate-pulse' 
-                  : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:text-white'
+                  : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white'
               }`}
               title="Voice recording (Hindi/English)"
             >
-              <Mic className="w-5 h-5" />
+              <Mic className="w-4 h-4" />
             </button>
 
             <button
               type="button"
-              onClick={() => alert('Document/receipt OCR scanning enabled! Upload coming in next screen.')}
-              className="p-2.5 rounded-xl border border-slate-700 bg-slate-800/80 text-slate-300 hover:text-white transition-colors"
+              onClick={() => alert('Document & bill OCR intelligence is active in Document Library!')}
+              className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:text-white transition-colors"
               title="Attach Document or Receipt"
             >
-              <ImageIcon className="w-5 h-5" />
+              <ImageIcon className="w-4 h-4" />
             </button>
           </div>
 
           <button
             onClick={handleCapture}
             disabled={!text.trim() || isLoading}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm rounded-xl flex items-center space-x-2 shadow-md shadow-indigo-600/30 transition-all active:scale-95"
+            className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl flex items-center space-x-2 shadow-lg shadow-cyan-500/30 transition-all active:scale-95"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-950" />
                 <span>Processing...</span>
               </>
             ) : (
               <>
-                <span>Save</span>
-                <Send className="w-4 h-4" />
+                <span>Commit</span>
+                <Send className="w-3.5 h-3.5" />
               </>
             )}
           </button>

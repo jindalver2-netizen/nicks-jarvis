@@ -287,12 +287,19 @@ ALTER TABLE public.notification_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
--- Helper macro for standard CRUD policy creation
+-- 1. Profiles Table Policy (where the primary key id IS the auth.uid())
+DROP POLICY IF EXISTS user_isolation_policy ON public.profiles;
+CREATE POLICY user_isolation_policy ON public.profiles
+    FOR ALL TO authenticated
+    USING (id = auth.uid())
+    WITH CHECK (id = auth.uid());
+
+-- 2. All Other Tables (where user_id matches auth.uid())
 DO $$ 
 DECLARE
     tbl text;
     tables text[] := ARRAY[
-        'profiles', 'user_preferences', 'conversations', 'messages', 
+        'user_preferences', 'conversations', 'messages', 
         'memories', 'memory_embeddings', 'recurring_rules', 'tasks', 
         'subtasks', 'reminders', 'lists', 'list_items', 'documents', 
         'document_extractions', 'notifications', 'notification_logs', 
@@ -310,13 +317,6 @@ BEGIN
         ', 'user_isolation_policy', tbl, 'user_isolation_policy', tbl);
     END LOOP;
 END $$;
-
--- Fix profiles table policy where the ID column is the user's auth ID
-DROP POLICY IF EXISTS user_isolation_policy ON public.profiles;
-CREATE POLICY user_isolation_policy ON public.profiles
-    FOR ALL TO authenticated
-    USING (id = auth.uid())
-    WITH CHECK (id = auth.uid());
 
 -- Automatic profile creation on Supabase Auth SignUp
 CREATE OR REPLACE FUNCTION public.handle_new_user()
